@@ -1,4 +1,5 @@
 import os
+import hmac
 from datetime import datetime
 from flask import Flask, jsonify, redirect, render_template, request, url_for, flash
 from models import db, Vehiculo, Paso
@@ -88,21 +89,44 @@ def pagar(patente):
     return render_template("checkout.html", patente=patente, pendientes=pendientes, total=sum(p.precio for p in pendientes))
 
 
+def crear_paso(patente, precio=None):
+    v = Vehiculo.query.filter_by(patente=patente).first()
+    paso = Paso(patente=patente, vehiculo_id=v.id if v else None, precio=precio or app.config["TARIFA"])
+    db.session.add(paso)
+    db.session.commit()
+    return paso
+
+
 @app.post("/api/pasos")
 def api_paso():
     data = request.get_json(silent=True) or {}
     patente = norm(data.get("patente"))
     if not patente:
         return jsonify(error="patente requerida"), 400
-    v = Vehiculo.query.filter_by(patente=patente).first()
-    paso = Paso(
-        patente=patente,
-        vehiculo_id=v.id if v else None,
-        precio=int(data.get("precio") or app.config["TARIFA"]),
-    )
-    db.session.add(paso)
-    db.session.commit()
-    return jsonify(paso.to_dict()), 201
+    return jsonify(crear_paso(patente, int(data.get("precio") or 0)).to_dict()), 201
+
+
+# Endpoints para el hardware: responden texto plano para que la placa no tenga que leer JSON.
+# Piden la clave HW_KEY en ?k=. Si la variable no está definida (desarrollo local) no se exige.
+@app.before_request
+def exigir_clave_hw():
+    clave = os.environ.get("HW_KEY")
+    if clave and request.path.startswith("/hw/"):
+        if not hmac.compare_digest(request.args.get("k", ""), clave):
+            return "", 401
+
+
+@app.get("/hw/paso")
+def hw_paso():
+    patente = norm(request.args.get("patente"))
+    if not patente:
+        return "", 400
+    return str(crear_paso(patente).id)
+
+
+@app.get("/hw/pagado/<int:paso_id>")
+def hw_pagado(paso_id):
+    return "1" if db.get_or_404(Paso, paso_id).pagado else "0"
 
 
 @app.get("/api/pasos/<int:paso_id>")
