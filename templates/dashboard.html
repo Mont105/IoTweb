@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for titulo, valor in [("Pasos", n_pasos), ("Vehículos", n_veh), ("Recaudado total", "$" ~ "{:,}".format(total).replace(",", ".")), ("Pendiente de pago", "$" ~ "{:,}".format(pendiente).replace(",", "."))] %}
+  <div class="col-6 col-md-3">
+    <div class="card text-center"><div class="card-body">
+      <div class="text-secondary small">{{ titulo }}</div>
+      <div class="fs-3 fw-semibold">{{ valor }}</div>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-sm-4"><input class="form-control" name="patente" value="{{ q }}" placeholder="Buscar patente"></div>
+  <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button></div>
+</form>
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>#</th><th>Patente</th><th>Fecha</th><th>Precio</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for p in pasos %}
+  <tr>
+    <td>{{ p.id }}</td>
+    <td class="fw-semibold">{{ p.patente }}</td>
+    <td>{{ p.fecha.strftime("%d-%m-%Y %H:%M:%S") }}</td>
+    <td>${{ "{:,}".format(p.precio).replace(",", ".") }}</td>
+    <td>{% if p.pagado %}<span class="badge text-bg-success">Pagado</span>{% else %}<span class="badge text-bg-warning">Pendiente</span>{% endif %}</td>
+    <td class="text-end">
+      {% if not p.pagado %}
+      <a class="btn btn-sm btn-outline-success" href="{{ url_for('pagar', patente=p.patente) }}">Pagar</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="text-center text-secondary py-4">Sin registros todavía</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

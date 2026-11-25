@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="row g-2 mb-4" method="post">
+  <div class="col-sm-3"><input class="form-control" name="patente" placeholder="Patente" required></div>
+  <div class="col-sm-4"><input class="form-control" name="propietario" placeholder="Propietario (opcional)"></div>
+  <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Registrar</button></div>
+</form>
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>Patente</th><th>Propietario</th><th>Registrado</th><th>Deuda</th><th></th></tr></thead>
+  <tbody>
+  {% for v in vehiculos %}
+  <tr>
+    <td class="fw-semibold">{{ v.patente }}</td>
+    <td>{{ v.propietario or "—" }}</td>
+    <td>{{ v.creado.strftime("%d-%m-%Y") }}</td>
+    <td>${{ "{:,}".format(v.deuda()).replace(",", ".") }}</td>
+    <td class="text-end">
+      {% if v.deuda() %}
+      <a class="btn btn-sm btn-outline-success" href="{{ url_for('pagar', patente=v.patente) }}">Pagar todo</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="text-center text-secondary py-4">Sin vehículos registrados</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
